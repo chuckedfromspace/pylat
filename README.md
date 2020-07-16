@@ -1,2 +1,2 @@
-# tomola
+# TomoLabs
 Tomographic Laser Absorption
