@@ -17,7 +17,7 @@ class SinoGram():
         self.sinogram = None
         self.size = size
 
-    def sinogram_paralell(self, num_laser, spacing_adjust=1, ang_laser=None):
+    def sinogram_parallel(self, num_laser, spacing_adjust=1, ang_laser=None):
         """
         Calculate the sinogram for uniformly-spaced parallel laser beams with specified angles and
         spancings.
@@ -76,7 +76,7 @@ class LineProj():
     """
     Calculate projections from parallel or arbitrary configurations of laser beams.
     """
-    def __init__(self, size=400, img=None):
+    def __init__(self, size=401, img=None):
         """
         Parameters
         ----------
@@ -169,26 +169,42 @@ class LineProj():
         line_r = np.zeros_like(line)
         proj_line = np.empty([0])
 
-        # rotate the line
-        for j in range(len(l)):
-            # clockwise rotation of line to line_r
-            line_r[j, 0] = np.cos(theta)*line[j, 0] + np.sin(theta)*line[j, 1]
-            line_r[j, 1] = -np.sin(theta)*line[j, 0] + np.cos(theta)*line[j, 1]
+        # clockwise rotation of line to line_r
+        line_r[:, 0] = np.cos(theta)*line[:, 0] + np.sin(theta)*line[:, 1]
+        line_r[:, 1] = -np.sin(theta)*line[:, 0] + np.cos(theta)*line[:, 1]
 
-            # assign matrix index to rotated coordinates
-            if x[0] <= line_r[j, 0] <= x[-1] and y[-1] <= line_r[j, 1] <= y[0]:
-                check_x = cor_x - line_r[j, 0]
-                check_y = cor_y - line_r[j, 1]
-                check = check_x**2 + check_y**2
-                index = np.argwhere(check == check.min())
+        # truncate the line to within the image
+        line_t = line_r[np.logical_and(line_r[:, 0] >= x[0], line_r[:, 0] <= x[-1])]
+        line_t = line_t[np.logical_and(line_t[:, 1] >= y[-1], line_t[:, 1] <= y[0])]
 
-                if proj_cal:
-                    proj_line = np.append(proj_line, self.img[index[0][0], index[0][1]])
-                    self.proj_abs = np.trapz(proj_line)
+        # assign matrix index to rotated coordinates
+        for j in range(len(line_t[:, 0])):
+            check = (cor_x - line_t[j, 0])**2 + (cor_y - line_t[j, 1])**2
+            index = np.argwhere(check == check.min())
 
-                if im_alt:
-                    self.img[index[0][0], index[0][1]] = value
-                    return self.img
+            if proj_cal:
+                proj_line = np.append(proj_line, self.img[index[0][0], index[0][1]])
+                self.proj_abs = np.trapz(proj_line)
+
+            if im_alt:
+                self.img[index[0][0], index[0][1]] = value
+
+    def conf_vis(self, sinogram, supply_img=False):
+        """
+        TODO: add docstring
+        """
+        if supply_img is True:
+            self.img = np.zeros([self.size, self.size])
+        k = 0
+        _tot = len(sinogram)
+        for _sino in sinogram:
+            self.proj(d=_sino['d'], theta=_sino['theta'], center=_sino['center'],
+                      axis=_sino['axis'], im_alt=True, value=1, proj_cal=False)
+
+            print('Processing Laser-line #%d of %d lines' % (k+1, _tot))
+            k += 1
+
+        return self.img
 
     def path(self, sinogram, size_reconst=40, hamming=False, mask=None):
         """
@@ -224,8 +240,9 @@ class LineProj():
 
         for k, _sino in enumerate(sinogram):
             self.img = np.zeros([self.size, self.size])
-            matProj = self.proj(d=_sino['d'], theta=_sino['theta'], center=_sino['center'],
-                                axis=_sino['axis'], im_alt=True, value=1, proj_cal=False)
+            self.proj(d=_sino['d'], theta=_sino['theta'], center=_sino['center'],
+                      axis=_sino['axis'], im_alt=True, value=1, proj_cal=False)
+            matProj = self.img
 
             if mask is not None:
                 matProj = matProj * mask
