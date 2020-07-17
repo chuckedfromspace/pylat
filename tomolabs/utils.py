@@ -2,6 +2,40 @@
 Utilities used in the package.
 """
 import numpy as np
+import pickle
+
+# quick save and load
+def pkl_dump(path_write, data):
+    """
+    Dump a data into a pikle file
+
+    Parameters
+    ----------
+    path_write : dir
+        A valid directory in the system
+    name_data : str
+        The full name of the file to be saved
+    data : python object
+    """
+    with open(path_write, 'wb') as pkl_file:
+        pickle.dump(data, pkl_file)
+
+def pkl_load(path_load):
+    """
+    Load a data into from pikle file
+
+    Parameters
+    ----------
+    path_load : dir
+        A valid directory in the system
+    name_data : str
+        The full name of the file to be loaded
+    """
+    with open(path_load, 'rb') as pkl_file:
+        data = pickle.load(pkl_file)
+
+    return data
+
 
 class Phantom():
     """

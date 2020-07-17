@@ -2,6 +2,30 @@
 Tomographic reconstruction based on line-of-sight laser absorption measurements
 """
 import numpy as np
+from scipy.ndimage.filters import gaussian_filter
+
+def reg_single(N):
+    """
+    Regulation functions for reconstruction of a single laser line
+
+    Parameters
+    ----------
+    N: ndarray
+        Numpy array containing the reconstruction from the previous iteration
+
+    Returns
+    -------
+    N: ndarray
+        Numpy array containing the regulated reconstruction based on specified
+        criteria
+    """
+
+    # smooth the field
+    N = gaussian_filter(N, sigma=2, mode='reflect')
+    N[N < 0] = 0.0
+
+    return N
+
 
 class TomoReconst():
     """
@@ -114,7 +138,7 @@ class TomoReconst():
                 break
 
         N = N.reshape([self.size_reconst, self.size_reconst])
-#         print(e, k)
+        print(e, k)
         return N
 
 class TomoReconst_2C():

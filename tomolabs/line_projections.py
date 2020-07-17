@@ -50,7 +50,7 @@ class SinoGram():
 
         return self.sinogram
 
-    def sinogram_custom(self, sinolist):
+    def sinogram_custom(self, sinolist, norm_fac=1):
         """
         Calculate the sinogram with custom (random) lines.
 
@@ -59,7 +59,9 @@ class SinoGram():
         sinolist : 2d array
             A 2d array with the shape of Nx2. The two columns are [distance (non-dimensionalized),
             angle]
-
+        norm_fac : float, optional
+            The physical dimension of the measurement volume matching the same unit of the provided
+            distances. Default is 1 assuming the distances are already normalized.
         """
         sinolist = np.array(sinolist)
         if np.shape(sinolist)[1] != 2:
@@ -67,7 +69,7 @@ class SinoGram():
 
         self.sinogram = np.empty(len(sinolist), dtype=dict)
         for i in range(np.shape(sinolist)[0]):
-            self.sinogram[i] = {'d':sinolist[i, 0]*self.size, 'theta': sinolist[i, 1],
+            self.sinogram[i] = {'d':sinolist[i, 0]/norm_fac*self.size, 'theta': sinolist[i, 1],
                                 'center': None, 'axis': 'y'}
         return self.sinogram
 
@@ -93,6 +95,7 @@ class LineProj():
         else:
             self.img = img
         self.proj_abs = None
+        self.proj_line = None
         self.mask = None
         self.Lij = None
         self.size_reconst = 40
@@ -185,6 +188,7 @@ class LineProj():
             if proj_cal:
                 proj_line = np.append(proj_line, self.img[index[0][0], index[0][1]])
                 self.proj_abs = np.trapz(proj_line)
+                self.proj_line = proj_line
 
             if im_alt:
                 self.img[index[0][0], index[0][1]] = value
@@ -199,12 +203,29 @@ class LineProj():
         _tot = len(sinogram)
         for _sino in sinogram:
             self.proj(d=_sino['d'], theta=_sino['theta'], center=_sino['center'],
-                      axis=_sino['axis'], im_alt=True, value=1, proj_cal=False)
+                      axis=_sino['axis'], im_alt=True, value=1+k, proj_cal=False)
 
             print('Processing Laser-line #%d of %d lines' % (k+1, _tot))
             k += 1
 
         return self.img
+
+    def absorbance(self, sinogram):
+        """
+        TODO: add docstring
+        """
+        _absorb = np.zeros(len(sinogram))
+        k = 0
+        _tot = len(sinogram)
+        for i, _sino in enumerate(sinogram):
+            self.proj(d=_sino['d'], theta=_sino['theta'], center=_sino['center'],
+                      axis=_sino['axis'], im_alt=False, value=1, proj_cal=1)
+
+            _absorb[i] = self.proj_abs
+            print('Processing Laser-line #%d of %d lines' % (k+1, _tot))
+            k += 1
+
+        return _absorb
 
     def path(self, sinogram, size_reconst=40, hamming=False, mask=None):
         """
@@ -237,7 +258,7 @@ class LineProj():
 
         resize = self.size//size_reconst
         self.Lij = np.zeros([len(sinogram), size_reconst, size_reconst])
-
+        _tot = len(sinogram)
         for k, _sino in enumerate(sinogram):
             self.img = np.zeros([self.size, self.size])
             self.proj(d=_sino['d'], theta=_sino['theta'], center=_sino['center'],
@@ -264,4 +285,6 @@ class LineProj():
 
             self.Lij[k, :, :] = mat_reconst
 
-            print('Processing Laser-line #%d' % (k+1))
+            print('Processing Laser-line #%d of %d lines' % (k+1, _tot))
+
+        return self.Lij
