@@ -4,40 +4,17 @@ Tomographic reconstruction based on line-of-sight laser absorption measurements
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter
 from scipy.optimize import minimize, Bounds
+from scipy.sparse import spdiags, kron
 from numpy.linalg import norm, inv
 
-def reg_tikhonov(proj_obj, absorb, alpha):
-    """
-    TODO: add docstring
-    """
-    # construct Ax=b
-    n = int(proj_obj.size_reconst)
-    mat_A = proj_obj.Lij
-    mat_A = np.reshape(mat_A, [np.shape(mat_A)[0], n*n])
-
-    # construct gamma (discrete Laplacian)
-    mat_Gamma = np.identity(n*n)
-    mat_Gamma[0, 1] = -1
-    mat_Gamma[n*n-1, n*n-2] = -1
-    index_i = np.arange(n*n-2) + 1
-    for i in index_i:
-        mat_Gamma[i, -1+i] = -1/2
-        mat_Gamma[i, 1+i] = -1/2
-
-    x0 = np.arange(n*n)
-    # define function for minimization
-    def func(x):
-        return norm(mat_A @ x - absorb) + alpha**2*(x.T @ mat_Gamma.T @ mat_Gamma @ x)
-
-    # solve minimization problem
-    # bnds = Bounds(0, np.inf)
-    # res = minimize(func, x0, method='SLSQP', bounds=bnds)
-
-    xa = inv(mat_A.T @ mat_A + alpha*mat_Gamma.T @ mat_Gamma) @ mat_A.T @ absorb
-
-    return np.reshape(x0, [n, n])
-
-
+def dis_lap(nx, ny, alpha=1):
+    ex = np.ones(nx)
+    ey = np.ones(ny)
+    Lx = spdiags([ex, -2*ex, ex], [-1, 0, 1], nx, nx)
+    Ly = spdiags([ey, -2*ey, ey], [-1, 0, 1], ny, ny)
+    Ix = spdiags(ex, 0, nx, nx)
+    Iy = spdiags(ey, 0, ny, ny)
+    return -(kron(Iy, Lx) + kron(Ly, Ix))/4*alpha
 
 def reg_single(N):
     """
@@ -57,7 +34,8 @@ def reg_single(N):
 
     # smooth the field
     N = gaussian_filter(N, sigma=2, mode='reflect')
-    N[N < 0] = 0.0
+    N[N < 0.] = 0.0
+    N[N > 1.] = 1.0
 
     return N
 
@@ -175,6 +153,45 @@ class TomoReconst():
         N = N.reshape([self.size_reconst, self.size_reconst])
         print(e, k)
         return N
+
+    def reg_tikhonov(self, alpha, x0=None):
+        """
+        TODO: add docstring
+        """
+        # construct Ax=b
+        n = self.size_reconst
+        mat_A = self.Lij
+        mat_A = np.reshape(mat_A, [np.shape(mat_A)[0], n*n])
+
+        mat_Gamma = dis_lap(n, n, alpha=alpha)
+
+        if x0 is None:
+            x0 = np.zeros(n*n)
+
+        # define function for minimization
+        def func(x):
+            return norm(mat_A @ x - self.absorb)**2 + norm(mat_Gamma @ x)**2
+
+        # solve minimization problem
+        bnds = Bounds(0, 1)
+        res = minimize(func, x0, method='SLSQP', bounds=bnds, tol=1e-6,
+                       options={'maxiter': 1000, 'disp': True}) # 'trust-constr'
+        return res
+
+    def reg_tikhonov_direct(self, alpha):
+        """
+        TODO: add docstring
+        """
+        # construct Ax=b
+        n = self.size_reconst
+        mat_A = self.Lij
+        mat_A = np.reshape(mat_A, [np.shape(mat_A)[0], n*n])
+
+        mat_Gamma = dis_lap(n, n, alpha=alpha)
+
+        x = inv(mat_A.T @ mat_A + mat_Gamma.T @ mat_Gamma) @ mat_A.T @ self.absorb
+
+        return x
 
 class TomoReconst_2C():
     """
