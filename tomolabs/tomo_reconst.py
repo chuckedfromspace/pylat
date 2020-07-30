@@ -8,6 +8,9 @@ from scipy.sparse import spdiags, kron
 from numpy.linalg import norm, inv
 
 def dis_lap(nx, ny, alpha=1):
+    """
+    TODO: add docstring
+    """
     ex = np.ones(nx)
     ey = np.ones(ny)
     Lx = spdiags([ex, -2*ex, ex], [-1, 0, 1], nx, nx)
