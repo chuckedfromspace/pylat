@@ -33,7 +33,7 @@ def reg_single(N):
     """
 
     # smooth the field
-    N = gaussian_filter(N, sigma=2, mode='reflect')
+    N = gaussian_filter(N, sigma=0.5, mode='reflect')
     N[N < 0.] = 0.0
     N[N > 1.] = 1.0
 
@@ -117,7 +117,7 @@ class TomoReconst():
 
         return N
 
-    def Landweber(self, reg_fcn, relax=0.15, resi=0.01, maxiter=200):
+    def Landweber(self, reg_fcn, relax=0.15, resi=0.001, maxiter=200):
         """
         TODO: add docstring
         """
@@ -141,8 +141,7 @@ class TomoReconst():
             M = reg_fcn(M)
             N_new = M.reshape([self.size_reconst*self.size_reconst, ])
 
-
-            e = np.sqrt(np.sum((N-N_new)**2))/np.sqrt(np.sum(N**2))
+            e = np.sqrt(np.sum((N-N_new)**2))/(np.sqrt(np.sum(N**2))+1e-6)
             N = N_new * 1
 
             k += 1
@@ -174,8 +173,9 @@ class TomoReconst():
 
         # solve minimization problem
         bnds = Bounds(0, 1)
-        res = minimize(func, x0, method='SLSQP', bounds=bnds, tol=1e-6,
-                       options={'maxiter': 1000, 'disp': True}) # 'trust-constr'
+        # SLSQP or trust-constr
+        res = minimize(func, x0, method='trust-constr', bounds=bnds, tol=1e-6,
+                       options={'maxiter': 1000, 'disp': True})
         return res
 
     def reg_tikhonov_direct(self, alpha):
