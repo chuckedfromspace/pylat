@@ -42,7 +42,6 @@ def reg_single(N):
 
     return N
 
-
 class TomoReconst():
     """
     Perform tomographic reconstruction based on laser-line configuration
@@ -156,7 +155,7 @@ class TomoReconst():
         print(e, k)
         return N
 
-    def reg_tikhonov(self, alpha, x0=None):
+    def reg_tikhonov(self, alpha, x0=None, mask=None):
         """
         TODO: add docstring
         """
@@ -166,7 +165,6 @@ class TomoReconst():
         mat_A = np.reshape(mat_A, [np.shape(mat_A)[0], n*n])
 
         mat_Gamma = dis_lap(n, n, alpha=alpha)
-
         if x0 is None:
             x0 = np.zeros(n*n)
 
