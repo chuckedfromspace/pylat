@@ -203,9 +203,9 @@ class LineProj():
         _tot = len(sinogram)
         for _sino in sinogram:
             self.proj(d=_sino['d'], theta=_sino['theta'], center=_sino['center'],
-                      axis=_sino['axis'], im_alt=True, value=1+k, proj_cal=False)
+                      axis=_sino['axis'], im_alt=True, value=1, proj_cal=False)
 
-            print('Processing Laser-line #%d of %d lines' % (k+1, _tot))
+            print('\rProcessing Laser-line #%d of %d lines' % (k+1, _tot), end="")
             k += 1
 
         return self.img
@@ -285,6 +285,6 @@ class LineProj():
 
             self.Lij[k, :, :] = mat_reconst
 
-            print('Processing Laser-line #%d of %d lines' % (k+1, _tot))
+            print('\rProcessing Laser-line #%d of %d lines' % (k+1, _tot), end="")
 
         return self.Lij
