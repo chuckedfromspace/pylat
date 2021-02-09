@@ -156,7 +156,7 @@ class TomoReconst():
         print(e, k)
         return N
 
-    def reg_tikhonov(self, alpha, x0=None):
+    def reg_tikhonov(self, alpha, x0=None, bnds_min=0, bnds_max=1):
         """
         TODO: add docstring
         """
@@ -168,17 +168,17 @@ class TomoReconst():
         mat_Gamma = dis_lap(n, n, alpha=alpha)
 
         if x0 is None:
-            x0 = np.zeros(n*n)
+            x0 = np.random.rand(n*n)
 
         # define function for minimization
         def func(x):
             return norm(mat_A @ x - self.absorb)**2 + norm(mat_Gamma @ x)**2
 
         # solve minimization problem
-        bnds = Bounds(0, 1)
+        bnds = Bounds(bnds_min, bnds_max)
         # SLSQP or trust-constr
         res = minimize(func, x0, method='trust-constr', bounds=bnds, tol=1e-6,
-                       options={'maxiter': 1000, 'disp': True})
+                       options={'maxiter': 2000, 'disp': True})
         return res
 
     def reg_tikhonov_direct(self, alpha):
