@@ -7,9 +7,23 @@ from scipy.optimize import minimize, Bounds
 from scipy.sparse import spdiags, kron
 from numpy.linalg import norm, inv
 
-def dis_lap(nx, ny, alpha=1):
-    """
-    TODO: add docstring
+
+def dis_lap(nx, ny, alpha=1.0):
+    """Create a Laplacian operator for smoothing
+
+    Parameters
+    ----------
+    nx : int
+        x-axis dimension
+    ny : int
+        y-axis dimension
+    alpha : float, optional
+        Smoothing factor (regularization parameter), by default 1.0
+
+    Returns
+    -------
+    2d array
+        Laplacian operator
     """
     ex = np.ones(nx)
     ey = np.ones(ny)
@@ -18,6 +32,7 @@ def dis_lap(nx, ny, alpha=1):
     Ix = spdiags(ex, 0, nx, nx)
     Iy = spdiags(ey, 0, ny, ny)
     return -(kron(Iy, Lx) + kron(Ly, Ix))/4*alpha
+
 
 def reg_single(N):
     """
@@ -41,6 +56,7 @@ def reg_single(N):
     N[N > 1.] = 1.0
 
     return N
+
 
 class TomoReconst():
     """
@@ -124,14 +140,13 @@ class TomoReconst():
         TODO: add docstring
         """
         # Landweber reconstruction
-        e = 1 # residual
-        k = 0 # count of iteration
+        e = 1  # residual
+        k = 0  # count of iteration
         L = self.Lij.reshape([np.shape(self.Lij)[0], self.size_reconst**2])
         # transpose of L as an approximation for L^-1
         L_t = np.transpose(L)
         # estimate relaxation factor
-        relax_est = 4 / np.sqrt(np.sum(np.dot(L_t, L)*
-                                       np.dot(L_t, L)))
+        relax_est = 4 / np.sqrt(np.sum(np.dot(L_t, L) * np.dot(L_t, L)))
         relax = min(relax, relax_est)
         # first guess
         N = np.dot(L_t, self.absorb)
@@ -152,10 +167,9 @@ class TomoReconst():
                 break
 
         N = N.reshape([self.size_reconst, self.size_reconst])
-        print(e, k)
         return N
 
-    def reg_tikhonov(self, alpha, x0=None, mask=None):
+    def reg_tikhonov(self, alpha, x0=None):
         """
         TODO: add docstring
         """
@@ -165,6 +179,7 @@ class TomoReconst():
         mat_A = np.reshape(mat_A, [np.shape(mat_A)[0], n*n])
 
         mat_Gamma = dis_lap(n, n, alpha=alpha)
+        # provide initial guess
         if x0 is None:
             x0 = np.zeros(n*n)
 
@@ -193,6 +208,7 @@ class TomoReconst():
         x = inv(mat_A.T @ mat_A + mat_Gamma.T @ mat_Gamma) @ mat_A.T @ self.absorb
 
         return x
+
 
 class TomoReconst_2C():
     """
