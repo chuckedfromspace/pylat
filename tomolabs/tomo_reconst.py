@@ -34,7 +34,7 @@ def dis_lap(nx, ny, alpha=1.0):
     return -(kron(Iy, Lx) + kron(Ly, Ix))/4*alpha
 
 
-def reg_single(N):
+def reg_single(N, sigma=0.5):
     """
     Regulation functions for reconstruction of a single laser line
 
@@ -51,7 +51,7 @@ def reg_single(N):
     """
 
     # smooth the field
-    N = gaussian_filter(N, sigma=0.5, mode='reflect')
+    N = gaussian_filter(N, sigma=sigma, mode='reflect')
     N[N < 0.] = 0.0
     N[N > 1.] = 1.0
 
@@ -135,7 +135,7 @@ class TomoReconst():
 
         return N
 
-    def Landweber(self, reg_fcn, relax=0.15, resi=0.001, maxiter=200):
+    def Landweber(self, reg_fcn, relax=0.15, resi=0.001, maxiter=200, N0=None):
         """
         TODO: add docstring
         """
@@ -149,7 +149,8 @@ class TomoReconst():
         relax_est = 4 / np.sqrt(np.sum(np.dot(L_t, L) * np.dot(L_t, L)))
         relax = min(relax, relax_est)
         # first guess
-        N = np.dot(L_t, self.absorb)
+        if N0 is None:
+            N = np.dot(L_t, self.absorb)
         N_new = N*1
         while e > resi:
             N_new = N + relax * np.dot(L_t, (self.absorb - np.dot(L, N)))
@@ -191,7 +192,7 @@ class TomoReconst():
         bnds = Bounds(bnds_min, bnds_max)
         # SLSQP or trust-constr
         res = minimize(func, x0, method='trust-constr', bounds=bnds, tol=1e-6,
-                       options={'maxiter': 2000, 'disp': True})
+                       options={'maxiter': 1000, 'disp': True})
         return res
 
     def reg_tikhonov_direct(self, alpha):
