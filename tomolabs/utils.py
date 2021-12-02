@@ -58,11 +58,15 @@ class Phantom():
         self.y = self.x[:, np.newaxis]
         self.img = None
 
-    def gaussian(self, fwhm=3):
+    def gaussian(self, fwhm=3, cutoff=0.):
         """
         TODO: add docstring
         """
-        self.img = np.exp(-4*np.log(2)*((self.x-self.x0)**2 + (self.y-self.y0)**2)/fwhm**2)
+        self.img = np.exp(-4*np.log(2)*((self.x-self.x0)**2
+                                        + (self.y-self.y0)**2)/fwhm**2)
+        if cutoff:
+            self.img[self.img > cutoff] = cutoff
+            self.img /= self.img.max()
 
         return self.img
 
