@@ -151,6 +151,8 @@ class TomoReconst():
         # first guess
         if N0 is None:
             N = np.dot(L_t, self.absorb)
+        else:
+            N = N0.copy()
         N_new = N*1
         while e > resi:
             N_new = N + relax * np.dot(L_t, (self.absorb - np.dot(L, N)))
@@ -170,7 +172,25 @@ class TomoReconst():
         N = N.reshape([self.size_reconst, self.size_reconst])
         return N
 
-    def reg_tikhonov(self, alpha, x0=None, bnds_min=0, bnds_max=1):
+
+    def reg_tikhonov_0th(self, alpha, x0=None, bnds_min=0, bnds_max=1):
+        n = self.size_reconst
+        mat_A = self.Lij
+        mat_A = np.reshape(mat_A, [np.shape(mat_A)[0], n*n])
+        if x0 is None:
+            x0 = np.random.rand(n*n)
+
+        def func(x):
+            return norm(mat_A @ x - self.absorb)**2 + norm(alpha * x)**2
+
+        bnds = Bounds(bnds_min, bnds_max)
+        # SLSQP or trust-constr
+        res = minimize(func, x0, method='SLSQP', bounds=None, tol=1e-6,
+                       options={'maxiter': 1000, 'disp': True})
+        return res
+
+
+    def reg_tikhonov_1th(self, alpha, x0=None, bnds_min=0, bnds_max=1):
         """
         TODO: add docstring
         """

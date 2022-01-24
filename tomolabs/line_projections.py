@@ -201,12 +201,14 @@ class LineProj():
             self.img = np.zeros([self.size, self.size])
         k = 0
         _tot = len(sinogram)
+        _value = 1
         for _sino in sinogram:
             self.proj(d=_sino['d'], theta=_sino['theta'], center=_sino['center'],
-                      axis=_sino['axis'], im_alt=True, value=1, proj_cal=False)
+                      axis=_sino['axis'], im_alt=True, value=_value, proj_cal=False)
 
             print('\rProcessing Laser-line #%d of %d lines' % (k+1, _tot), end="")
             k += 1
+            # _value += 1
 
         return self.img
 
@@ -222,7 +224,7 @@ class LineProj():
                       axis=_sino['axis'], im_alt=False, value=1, proj_cal=1)
 
             _absorb[i] = self.proj_abs
-            print('Processing Laser-line #%d of %d lines' % (k+1, _tot))
+            print('\rProcessing Laser-line #%d of %d lines' % (k+1, _tot), end="")
             k += 1
 
         return _absorb
